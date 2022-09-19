@@ -1,0 +1,8 @@
+python-telegram-bot
+Flask
+numpy
+requests
+matplotlib
+mplfinance
+seaborn
+prettytable
