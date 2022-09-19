@@ -8,7 +8,7 @@ from flask import *
 from telegram import *
 from telegram.ext import *
 
-base_url = "https://api.binance.com"
+base_url = "https://api2.binance.com"
 api_token = str(os.environ['API_TOKEN'])
 bot = Bot(api_token)
 dispatcher = Dispatcher(bot, None)
