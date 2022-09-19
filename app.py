@@ -128,6 +128,7 @@ def depthgraph(update : Update, context : CallbackContext):
     depth_asks_json = response_json['asks']
     depth_bids_json = numpy.asarray(depth_bids_json).astype(numpy.float32)
     depth_asks_json = numpy.asarray(depth_asks_json).astype(numpy.float32)
+    plt.figure()
     fig, ax = plt.subplots()
     ax.set_title("%s - Depth Chart" % trade_pair)
     seaborn.ecdfplot(
@@ -136,6 +137,7 @@ def depthgraph(update : Update, context : CallbackContext):
     seaborn.ecdfplot(
         stat="count", complementary=True, 
         data=depth_asks_json, ax=ax, color='red')
+    
     ax.set_xlabel("Price")
     ax.set_ylabel("Qty")
     plt.savefig("depth.png")
