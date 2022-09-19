@@ -139,7 +139,7 @@ def depthgraph(update : Update, context : CallbackContext):
     ax.set_xlabel("Price")
     ax.set_ylabel("Qty")
     plt.savefig("depth.png")
-    update.message.reply_photo(open("trade.png", "rb"))
+    update.message.reply_photo(open("depth.png", "rb"))
 
 dispatcher.add_handler(CommandHandler("start", start))
 dispatcher.add_handler(CommandHandler("priceinfo", priceinfo))
