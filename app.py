@@ -137,8 +137,6 @@ def depthgraph(update : Update, context : CallbackContext):
     seaborn.ecdfplot(
         x="price", y="qty", stat="count", complementary=True, 
         data=depth_asks_json, ax=ax, color='red')
-    ax.set("Price")
-    ax.set_ylabel("Qty")
     plt.savefig("depth.png")
     update.message.reply_photo(open("depth.png", "rb"))
 
