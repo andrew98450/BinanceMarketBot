@@ -2,7 +2,7 @@
 
 Telegram Bot. 
 
-Binance market analysis.
+Binance Market Analysis.
 
 /start -> Show option menu.
 
