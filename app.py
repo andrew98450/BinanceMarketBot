@@ -132,11 +132,13 @@ def depthgraph(update : Update, context : CallbackContext):
     ax = plt.subplot()
     ax.set_title("%s - Depth Chart" % trade_pair)
     seaborn.ecdfplot(
-        x="price", y="qty", stat="count", complementary=True, 
+        stat="count", complementary=True, 
         data=depth_bids_json, ax=ax, color='green')
     seaborn.ecdfplot(
-        x="price", y="qty", stat="count", complementary=True, 
+        stat="count", complementary=True, 
         data=depth_asks_json, ax=ax, color='red')
+    ax.set_xlabel("price")
+    ax.set_ylabel("qty")
     plt.savefig("depth.png")
     update.message.reply_photo(open("depth.png", "rb"))
 
