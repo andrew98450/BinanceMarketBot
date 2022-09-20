@@ -3,6 +3,5 @@ Flask
 numpy
 requests
 matplotlib
-pandas
 scikit-learn
 prettytable

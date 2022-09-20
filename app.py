@@ -1,4 +1,3 @@
-from cProfile import label
 import os
 import numpy
 import requests
