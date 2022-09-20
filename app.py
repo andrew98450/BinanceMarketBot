@@ -19,8 +19,8 @@ def start(update : Update, context : CallbackContext):
     help_str += "/priceinfo <trade_pair> ... -> Price information.\n"
     help_str += "/tradeinfo <trade_pair> <n> -> Trade information.\n"
     help_str += "/depthinfo <trade_pair> <n> -> Depth information.\n"
-    help_str += "/tradegraph <trade_pair> <n> -> View trade graph.\n"
-    help_str += "/depthgraph <trade_pair> <n> -> View depth graph."
+    help_str += "/tradechart <trade_pair> <n> -> View trade chart.\n"
+    help_str += "/depthchart <trade_pair> <n> -> View depth chart."
     update.message.reply_text(help_str)
 
 def priceinfo(update : Update, context : CallbackContext):
