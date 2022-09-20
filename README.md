@@ -8,11 +8,11 @@ Binance Market Analysis.
 
 /priceinfo <trade_pair> ... -> Price information.
 
-/tradeinfo <trade_pair> <n> -> Trade information.
+/tradeinfo <trade_pair> <limit> -> Trade information.
 
-/depthinfo <trade_pair> <n> -> Depth information.
+/depthinfo <trade_pair> <limit> -> Depth information.
 
-/tradechart <trade_pair> <n> -> View trade chart.
+/tradechart <trade_pair> <limit> -> View trade chart.
 
-/depthchart <trade_pair> <n> -> View depth chart.
+/depthchart <trade_pair> <limit> -> View depth chart.
 
