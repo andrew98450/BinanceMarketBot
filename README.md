@@ -12,7 +12,7 @@ Binance Market Analysis.
 
 /depthinfo <trade_pair> <n> -> Depth information.
 
-/tradegraph <trade_pair> <n> -> View trade graph.
+/tradechart <trade_pair> <n> -> View trade chart.
 
-/depthgraph <trade_pair> <n> -> View depth graph.
+/depthchart <trade_pair> <n> -> View depth chart.
 
