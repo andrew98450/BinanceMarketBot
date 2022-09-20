@@ -110,6 +110,7 @@ def tradechart(update : Update, context : CallbackContext):
     price_data = [float(json_data['price']) for json_data in response_json]
     plt.figure()
     plt.title("%s - Trade Chart" % trade_pair)
+    plt.ylabel("price")
     plt.plot(price_data)
     plt.savefig("trade.png")
     update.message.reply_photo(open("trade.png", "rb"))
