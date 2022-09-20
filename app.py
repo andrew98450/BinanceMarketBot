@@ -121,7 +121,6 @@ def klineinfo(update : Update, context : CallbackContext):
     response_json = response.json()
     for kline_data in response_json:
         kline_data = kline_data[1:5]
-        kline_data = [float(num) for num in kline_data]
         table.add_row(kline_data)
     
     update.message.reply_text(f'<pre>{table}</pre>', parse_mode=ParseMode.HTML)
@@ -190,10 +189,10 @@ def klinechart(update : Update, context : CallbackContext):
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=%d" % (trade_pair, interval, n)
     response = requests.get(url=url)
     response_json = response.json()
-    kline_open = [float(num[1]) for num in response_json]
-    kline_high = [float(num[2]) for num in response_json]
-    kline_low = [float(num[3]) for num in response_json]
-    kline_close = [float(num[4]) for num in response_json]
+    kline_open = [float(num[1].replace('o', '')) for num in response_json]
+    kline_high = [float(num[2].replace('o', '')) for num in response_json]
+    kline_low = [float(num[3].replace('o', '')) for num in response_json]
+    kline_close = [float(num[4].replace('o', '')) for num in response_json]
 
     plt.figure()
     plt.plot(kline_open)
@@ -234,9 +233,9 @@ def predictchart(update : Update, context : CallbackContext):
     x_train, x_test, y_train, _, time_train, time_test = train_test_split(x_data, y_data, time_data, test_size=0.2, shuffle=False)
     linear.fit(x_train, y_train)
     prediction = linear.predict(x_test)
-    kline_open = [float(num[0]) for num in x_train]
-    kline_high = [float(num[1]) for num in x_train]
-    kline_low = [float(num[2]) for num in x_train]
+    kline_open = [float(num[0].replace('o', '')) for num in x_train]
+    kline_high = [float(num[1].replace('o', '')) for num in x_train]
+    kline_low = [float(num[2].replace('o', '')) for num in x_train]
     predict = [float(num) for num in prediction]
     plt.figure()
     plt.plot(time_train, kline_open, color='g', label="kline")
