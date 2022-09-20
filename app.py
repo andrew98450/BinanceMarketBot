@@ -133,13 +133,12 @@ def depthgraph(update : Update, context : CallbackContext):
     asks_price = [data[0] for data in depth_asks_json]
     asks_qty = [data[1] for data in depth_asks_json]
 
-    fig = plt.figure()
-    ax = plt.subplot()
-    ax.set_title("%s - Depth Chart" % trade_pair)
-    ax.hist(x=bids_price, bins=bids_qty)
-    ax.hist(x=asks_price, bins=asks_qty)
-    ax.set_xlabel("price")
-    ax.set_ylabel("qty")
+    plt.figure()
+    plt.title("%s - Depth Chart" % trade_pair)
+    plt.hist(x=bids_price, bins=bids_qty, align='left')
+    plt.hist(x=asks_price, bins=asks_qty, align='right')
+    plt.xlabel("price")
+    plt.ylabel("qty")
     plt.savefig("depth.png")
     update.message.reply_photo(open("depth.png", "rb"))
 
