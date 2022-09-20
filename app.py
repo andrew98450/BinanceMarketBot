@@ -196,6 +196,7 @@ def klinechart(update : Update, context : CallbackContext):
     kline_close = [float(num[4].replace('o', '')) for num in response_json]
 
     plt.figure()
+    plt.title("%s - Kline Chart" % trade_pair)
     plt.plot(kline_open, label="open")
     plt.plot(kline_high, label="high")
     plt.plot(kline_low, label="low")
@@ -239,6 +240,7 @@ def predictchart(update : Update, context : CallbackContext):
     kline_low = [float(num[2]) for num in x_train]
     predict = [float(num) for num in prediction]
     plt.figure()
+    plt.title("%s - Predict Chart" % trade_pair)
     plt.plot(time_train, kline_open, color='g', label="kline")
     plt.plot(time_train, kline_high, color='g')
     plt.plot(time_train, kline_low, color='g')
