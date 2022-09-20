@@ -1,3 +1,4 @@
+from cProfile import label
 import os
 import numpy
 import requests
@@ -6,8 +7,11 @@ import prettytable as pt
 from flask import *
 from telegram import *
 from telegram.ext import *
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
 
 base_url = "https://api.binance.com"
+
 api_token = str(os.environ['API_TOKEN'])
 bot = Bot(api_token)
 dispatcher = Dispatcher(bot, None)
@@ -18,14 +22,18 @@ def start(update : Update, context : CallbackContext):
     help_str += "/priceinfo <trade_pair> ... -> Price information.\n"
     help_str += "/tradeinfo <trade_pair> <n> -> Trade information.\n"
     help_str += "/depthinfo <trade_pair> <n> -> Depth information.\n"
+    help_str += "/klineinfo <trade_pair> <interval> <n> -> Kline information.\n"
     help_str += "/tradechart <trade_pair> <n> -> View trade chart.\n"
-    help_str += "/depthchart <trade_pair> <n> -> View depth chart."
+    help_str += "/depthchart <trade_pair> <n> -> View depth chart.\n"
+    help_str += "/klinechart <trade_pair> <interval> <n> -> View kline chart.\n"
+    help_str += "/predictchart <trade_pair> <interval> -> View kline predict chart."
     update.message.reply_text(help_str)
 
 def priceinfo(update : Update, context : CallbackContext):
     if len(context.args) < 1:
-        update.message.reply_text("Please input price argument.")
+        update.message.reply_text("Please input price info argument.")
         return
+
     table = pt.PrettyTable([
         'symbol', 'price'])
     if len(context.args) == 1:
@@ -50,8 +58,9 @@ def priceinfo(update : Update, context : CallbackContext):
 
 def tradeinfo(update : Update, context : CallbackContext):
     if len(context.args) != 2:
-        update.message.reply_text("Please input trade argument.")
+        update.message.reply_text("Please input trade info argument.")
         return
+
     table = pt.PrettyTable([
         'price', 'qty', 'side'])
     trade_pair = str(context.args[0])
@@ -74,8 +83,9 @@ def tradeinfo(update : Update, context : CallbackContext):
 
 def depthinfo(update : Update, context : CallbackContext):
     if len(context.args) != 2:
-        update.message.reply_text("Please input depth argument.")
+        update.message.reply_text("Please input depth info argument.")
         return
+
     bid_table = pt.PrettyTable([
         'price', 'qty'])
     ask_table = pt.PrettyTable([
@@ -97,9 +107,29 @@ def depthinfo(update : Update, context : CallbackContext):
     update.message.reply_text("Asks")
     update.message.reply_text(f'<pre>{ask_table}</pre>', parse_mode=ParseMode.HTML)
 
+def klineinfo(update : Update, context : CallbackContext):
+    if len(context.args) != 3:
+        update.message.reply_text("Please input kline info argument.")
+        return
+
+    table = pt.PrettyTable([
+        'open', 'high', 'low', 'close'])
+    trade_pair = str(context.args[0])
+    interval = str(context.args[1])
+    n = int(context.args[2])
+    url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=%d" % (trade_pair, interval, n)
+    response = requests.get(url=url)
+    response_json = response.json()
+    for kline_data in response_json:
+        kline_data = kline_data[1:5]
+        kline_data = [float(num) for num in kline_data]
+        table.add_row(kline_data)
+    
+    update.message.reply_text(f'<pre>{table}</pre>', parse_mode=ParseMode.HTML)
+
 def tradechart(update : Update, context : CallbackContext):
     if len(context.args) != 2:
-        update.message.reply_text("Please input trade argument.")
+        update.message.reply_text("Please input trade chart argument.")
         return
     
     trade_pair = str(context.args[0])
@@ -112,12 +142,13 @@ def tradechart(update : Update, context : CallbackContext):
     plt.title("%s - Trade Chart" % trade_pair)
     plt.ylabel("price")
     plt.plot(price_data)
+    plt.tight_layout()
     plt.savefig("trade.png")
     update.message.reply_photo(open("trade.png", "rb"))
 
 def depthchart(update : Update, context : CallbackContext):
     if len(context.args) != 2:
-        update.message.reply_text("Please input depth argument.")
+        update.message.reply_text("Please input depth chart argument.")
         return
 
     trade_pair = str(context.args[0])
@@ -144,15 +175,88 @@ def depthchart(update : Update, context : CallbackContext):
     plt.step(x=asks_price, y=asks_qty, where='post')
     plt.xlabel("price")
     plt.ylabel("qty")
+    plt.tight_layout()
     plt.savefig("depth.png")
     update.message.reply_photo(open("depth.png", "rb"))
+
+def klinechart(update : Update, context : CallbackContext):
+    if len(context.args) != 3:
+        update.message.reply_text("Please input kline chart argument.")
+        return
+    
+    trade_pair = str(context.args[0])
+    interval = str(context.args[1])
+    n = int(context.args[2])
+
+    url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=%d" % (trade_pair, interval, n)
+    response = requests.get(url=url)
+    response_json = response.json()
+    kline_open = [float(num[1]) for num in response_json]
+    kline_high = [float(num[2]) for num in response_json]
+    kline_low = [float(num[3]) for num in response_json]
+    kline_close = [float(num[4]) for num in response_json]
+
+    plt.figure()
+    plt.plot(kline_open)
+    plt.plot(kline_high)
+    plt.plot(kline_low)
+    plt.plot(kline_close)
+    plt.ylabel("price")
+    plt.tight_layout()
+    plt.savefig("kline.png")
+
+    update.message.reply_photo(open("kline.png", "rb"))
+
+def predictchart(update : Update, context : CallbackContext):
+    if len(context.args) != 2:
+        update.message.reply_text("Please input predict chart argument.")
+        return
+    
+    linear = LinearRegression()
+    trade_pair = str(context.args[0])
+    interval = str(context.args[1])
+    url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
+    response = requests.get(url=url)
+    response_json = response.json()
+
+    x_data = []
+    y_data = []
+    time_data = []
+    for kline_data in response_json:
+        time = kline_data[0]
+        x = kline_data[1:4]
+        y = kline_data[4]
+        x_data.append(x)
+        y_data.append(y)
+        time_data.append(time)
+
+    x_data = numpy.array(x_data, dtype=numpy.float32)
+    y_data = numpy.array(y_data, dtype=numpy.float32)
+    x_train, x_test, y_train, _, time_train, time_test = train_test_split(x_data, y_data, time_data, test_size=0.2, shuffle=False)
+    linear.fit(x_train, y_train)
+    prediction = linear.predict(x_test)
+    kline_open = [float(num[0]) for num in x_train]
+    kline_high = [float(num[1]) for num in x_train]
+    kline_low = [float(num[2]) for num in x_train]
+    predict = [float(num) for num in prediction]
+    plt.figure()
+    plt.plot(time_train, kline_open, color='g', label="kline")
+    plt.plot(time_train, kline_high, color='g')
+    plt.plot(time_train, kline_low, color='g')
+    plt.plot(time_test, predict, color='b', label="predict")
+    plt.tight_layout()
+    plt.savefig("predict.png")
+    update.message.reply_photo(open("predict.png", "rb"))
 
 dispatcher.add_handler(CommandHandler("start", start))
 dispatcher.add_handler(CommandHandler("priceinfo", priceinfo))
 dispatcher.add_handler(CommandHandler("tradeinfo", tradeinfo))
 dispatcher.add_handler(CommandHandler("depthinfo", depthinfo))
+dispatcher.add_handler(CommandHandler("klineinfo", klineinfo))
 dispatcher.add_handler(CommandHandler("tradechart", tradechart))
 dispatcher.add_handler(CommandHandler("depthchart", depthchart))
+dispatcher.add_handler(CommandHandler("klinechart", klinechart))
+dispatcher.add_handler(CommandHandler("predictchart", predictchart))
 
 @app.route("/webhook", methods=['GET', 'POST'])
 def webhook():
