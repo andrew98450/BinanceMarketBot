@@ -3,5 +3,6 @@ Flask
 numpy
 requests
 matplotlib
-mplfinance
+pandas
+scikit-learn
 prettytable
