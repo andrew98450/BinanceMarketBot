@@ -196,10 +196,10 @@ def klinechart(update : Update, context : CallbackContext):
     kline_close = [float(num[4].replace('o', '')) for num in response_json]
 
     plt.figure()
-    plt.plot(kline_open)
-    plt.plot(kline_high)
-    plt.plot(kline_low)
-    plt.plot(kline_close)
+    plt.plot(kline_open, label="open")
+    plt.plot(kline_high, label="high")
+    plt.plot(kline_low, label="low")
+    plt.plot(kline_close, label="close")
     plt.ylabel("price")
     plt.tight_layout()
     plt.savefig("kline.png")
