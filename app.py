@@ -3,13 +3,11 @@ import numpy
 import requests
 import matplotlib.pyplot as plt
 import prettytable as pt
-import seaborn
-import pandas
 from flask import *
 from telegram import *
 from telegram.ext import *
 
-base_url = "https://api2.binance.com"
+base_url = "https://api.binance.com"
 api_token = str(os.environ['API_TOKEN'])
 bot = Bot(api_token)
 dispatcher = Dispatcher(bot, None)
@@ -20,8 +18,8 @@ def start(update : Update, context : CallbackContext):
     help_str += "/priceinfo <trade_pair> ... -> Price information.\n"
     help_str += "/tradeinfo <trade_pair> <n> -> Trade information.\n"
     help_str += "/depthinfo <trade_pair> <n> -> Depth information.\n"
-    help_str += "/tradegraph <trade_pair> <n> -> View trade graph.\n"
-    help_str += "/depthgraph <trade_pair> <n> -> View depth graph."
+    help_str += "/tradechart <trade_pair> <n> -> View trade chart.\n"
+    help_str += "/depthchart <trade_pair> <n> -> View depth chart."
     update.message.reply_text(help_str)
 
 def priceinfo(update : Update, context : CallbackContext):
@@ -99,7 +97,7 @@ def depthinfo(update : Update, context : CallbackContext):
     update.message.reply_text("Asks")
     update.message.reply_text(f'<pre>{ask_table}</pre>', parse_mode=ParseMode.HTML)
 
-def tradegraph(update : Update, context : CallbackContext):
+def tradechart(update : Update, context : CallbackContext):
     if len(context.args) != 2:
         update.message.reply_text("Please input trade argument.")
         return
@@ -111,11 +109,12 @@ def tradegraph(update : Update, context : CallbackContext):
     response_json = response.json()
     price_data = [float(json_data['price']) for json_data in response_json]
     plt.figure()
+    plt.title("%s - Trade Chart" % trade_pair)
     plt.plot(price_data)
     plt.savefig("trade.png")
     update.message.reply_photo(open("trade.png", "rb"))
 
-def depthgraph(update : Update, context : CallbackContext):
+def depthchart(update : Update, context : CallbackContext):
     if len(context.args) != 2:
         update.message.reply_text("Please input depth argument.")
         return
@@ -127,17 +126,19 @@ def depthgraph(update : Update, context : CallbackContext):
     response_json = response.json()
     depth_bids_json = response_json['bids']
     depth_asks_json = response_json['asks']
-    bids = pandas.DataFrame(depth_bids_json, dtype=float)
-    asks = pandas.DataFrame(depth_asks_json, dtype=float)
-    data = pandas.concat([bids, asks]).reset_index(drop=True)
-    fig = plt.figure()
-    ax = plt.subplot()
-    ax.set_title("%s - Depth Chart" % trade_pair)
-    seaborn.histplot(
-        stat="count", complementary=True, 
-        data=data, ax=ax, color='green')
-    ax.set_xlabel("price")
-    ax.set_ylabel("qty")
+    depth_bids_json = numpy.asarray(depth_bids_json).astype(numpy.float32)
+    depth_asks_json = numpy.asarray(depth_asks_json).astype(numpy.float32)
+    bids_price = [data[0] for data in depth_bids_json]
+    bids_qty = [data[1] for data in depth_bids_json]
+    asks_price = [data[0] for data in depth_asks_json]
+    asks_qty = [data[1] for data in depth_asks_json]
+
+    plt.figure()
+    plt.title("%s - Depth Chart" % trade_pair)
+    plt.step(x=bids_price, y=bids_qty, where='pre')
+    plt.step(x=asks_price, y=asks_qty, where='post')
+    plt.xlabel("price")
+    plt.ylabel("qty")
     plt.savefig("depth.png")
     update.message.reply_photo(open("depth.png", "rb"))
 
@@ -145,8 +146,8 @@ dispatcher.add_handler(CommandHandler("start", start))
 dispatcher.add_handler(CommandHandler("priceinfo", priceinfo))
 dispatcher.add_handler(CommandHandler("tradeinfo", tradeinfo))
 dispatcher.add_handler(CommandHandler("depthinfo", depthinfo))
-dispatcher.add_handler(CommandHandler("tradegraph", tradegraph))
-dispatcher.add_handler(CommandHandler("depthgraph", depthgraph))
+dispatcher.add_handler(CommandHandler("tradechart", tradechart))
+dispatcher.add_handler(CommandHandler("depthchart", depthchart))
 
 @app.route("/webhook", methods=['GET', 'POST'])
 def webhook():

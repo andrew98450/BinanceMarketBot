@@ -4,5 +4,4 @@ numpy
 requests
 matplotlib
 mplfinance
-seaborn
 prettytable
