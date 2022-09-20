@@ -132,6 +132,10 @@ def depthchart(update : Update, context : CallbackContext):
     bids_qty = [data[1] for data in depth_bids_json]
     asks_price = [data[0] for data in depth_asks_json]
     asks_qty = [data[1] for data in depth_asks_json]
+    bids_price.sort()
+    bids_qty.sort(reverse=True)
+    asks_price.sort()
+    asks_qty.sort()
 
     plt.figure()
     plt.title("%s - Depth Chart" % trade_pair)
