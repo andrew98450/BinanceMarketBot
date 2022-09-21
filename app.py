@@ -6,8 +6,11 @@ import prettytable as pt
 from flask import *
 from telegram import *
 from telegram.ext import *
-from sklearn.linear_model import SGDRegressor
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
+
 
 base_url = "https://api2.binance.com"
 api_token = str(os.environ['API_TOKEN'])
@@ -209,7 +212,7 @@ def predictchart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
-    sgd = SGDRegressor()
+    linear = make_pipeline(StandardScaler(), RandomForestRegressor(max_depth=10))
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
     response_json = response.json()
@@ -217,32 +220,32 @@ def predictchart(update : Update, context : CallbackContext):
     x_data = []
     y_data = []
     time_data = []
-    for kline_data in response_json:
-        time = kline_data[0]
+    for iters, kline_data in enumerate(response_json, 0):
         x = kline_data[1:5]
         y = kline_data[4]
         x_data.append(x)
         y_data.append(y)
-        time_data.append(time)
+        time_data.append(iters)
 
     x_data = numpy.array(x_data, dtype=numpy.float32)
     y_data = numpy.array(y_data, dtype=numpy.float32)
     
+    test_size = int(len(x_data) - (len(x_data) * 0.2))
+
     x_train, x_test, y_train, _ = train_test_split(x_data, y_data, test_size=0.2, shuffle=False)
     time_train, time_test = train_test_split(time_data, test_size=0.2, shuffle=False)
-    sgd.fit(x_train, y_train)
-    y_pred = sgd.predict(x_test)
-    
-    kline_open = [num[0] for num in x_train]
-    kline_high = [num[1] for num in x_train]
-    kline_low = [num[2] for num in x_train]
-    kline_close = [num[3] for num in x_train]
-    kline_test_open = [num[0] for num in x_test]
-    kline_test_high = [num[1] for num in x_test]
-    kline_test_low = [num[2] for num in x_test]
-    kline_test_close = [num[3] for num in x_test]
-    predict = [num for num in y_pred]
+    y_pred = linear.fit(x_train, y_train).predict(x_test)
 
+    kline_open = [num[0] for num in x_data[:test_size]]
+    kline_high = [num[1] for num in x_data[:test_size]]
+    kline_low = [num[2] for num in x_data[:test_size]]
+    kline_close = [num[3] for num in x_data[:test_size]]
+    kline_test_open = [num[0] for num in x_data[test_size:]]
+    kline_test_high = [num[1] for num in x_data[test_size:]]
+    kline_test_low = [num[2] for num in x_data[test_size:]]
+    kline_test_close = [num[3] for num in x_data[test_size:]]
+    predict = [num for num in y_pred]
+ 
     plt.figure()
     plt.title("%s - Predict Chart" % trade_pair)
     plt.plot(time_train, kline_open, color='g')
