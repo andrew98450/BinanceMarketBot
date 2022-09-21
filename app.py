@@ -6,7 +6,9 @@ import prettytable as pt
 from flask import *
 from telegram import *
 from telegram.ext import *
-from sklearn.neighbors import KNeighborsRegressor
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 
 base_url = "https://api.binance.com"
@@ -207,7 +209,7 @@ def predictchart(update : Update, context : CallbackContext):
         update.message.reply_text("Please input predict chart argument.")
         return
     
-    knn = KNeighborsRegressor()
+    linear = make_pipeline(StandardScaler(), LinearRegression())
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
@@ -219,7 +221,7 @@ def predictchart(update : Update, context : CallbackContext):
     time_data = []
     for kline_data in response_json:
         time = kline_data[0]
-        x = kline_data[1:4]
+        x = kline_data[1:5]
         y = kline_data[4]
         x_data.append(x)
         y_data.append(y)
@@ -227,13 +229,15 @@ def predictchart(update : Update, context : CallbackContext):
 
     x_data = numpy.array(x_data, dtype=numpy.float32)
     y_data = numpy.array(y_data, dtype=numpy.float32)
-    x_train, x_test, y_train, _, time_train, time_test = train_test_split(x_data, y_data, time_data, test_size=0.3, shuffle=False)
-    knn = knn.fit(x_train, y_train)
-    y_pred = knn.predict(x_test)
+
+    x_train, x_test, y_train, _, time_train, time_test = train_test_split(x_data, y_data, time_data, test_size=0.3, random_state=0)
+    linear = linear.fit(x_train, y_train)
+    y_pred = linear.predict(x_test)
     
     kline_open = [num[0] for num in x_train]
     kline_high = [num[1] for num in x_train]
     kline_low = [num[2] for num in x_train]
+    kline_close = [num[3] for num in x_train]
     predict = [num for num in y_pred]
 
     plt.figure()
@@ -241,6 +245,7 @@ def predictchart(update : Update, context : CallbackContext):
     plt.plot(time_train, kline_open, color='g')
     plt.plot(time_train, kline_high, color='g')
     plt.plot(time_train, kline_low, color='g')
+    plt.plot(time_train, kline_close, color='g')
     plt.plot(time_test, predict, color='b')
     plt.tight_layout()
     plt.savefig("predict.png")
