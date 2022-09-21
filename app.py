@@ -9,7 +9,7 @@ from telegram.ext import *
 from sklearn.svm import SVR
 from sklearn.model_selection import train_test_split
 
-base_url = "https://api.binance.com"
+base_url = "https://api2.binance.com"
 api_token = str(os.environ['API_TOKEN'])
 bot = Bot(api_token)
 dispatcher = Dispatcher(bot, None)
