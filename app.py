@@ -229,9 +229,11 @@ def predictchart(update : Update, context : CallbackContext):
 
     x_data = numpy.array(x_data, dtype=numpy.float32)
     y_data = numpy.array(y_data, dtype=numpy.float32)
-
-    x_train, x_test, y_train, _, time_train, time_test = train_test_split(x_data, y_data, time_data, test_size=0.3, random_state=0)
-    linear = linear.fit(x_train, y_train)
+    
+    x_train, x_test, y_train, _, time_train, time_test = train_test_split(x_data, y_data, time_data, test_size=0.3, shuffle=False)
+    x = numpy.random.shuffle(x_train)
+    y = numpy.random.shuffle(y_train)
+    linear = linear.fit(x, y)
     y_pred = linear.predict(x_test)
     
     kline_open = [num[0] for num in x_train]
