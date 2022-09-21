@@ -6,7 +6,7 @@ import prettytable as pt
 from flask import *
 from telegram import *
 from telegram.ext import *
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import SGDRegressor
 from sklearn.model_selection import train_test_split
 
 base_url = "https://api2.binance.com"
@@ -209,7 +209,7 @@ def predictchart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
-    linear = LinearRegression()
+    sgd = SGDRegressor()
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
     response_json = response.json()
@@ -228,10 +228,10 @@ def predictchart(update : Update, context : CallbackContext):
     x_data = numpy.array(x_data, dtype=numpy.float32)
     y_data = numpy.array(y_data, dtype=numpy.float32)
     
-    x_train, x_test, y_train, _ = train_test_split(x_data, y_data, test_size=0.3, shuffle=False)
-    time_train, time_test = train_test_split(time_data, test_size=0.3, shuffle=False)
-    linear.fit(x_train, y_train)
-    y_pred = linear.predict(x_test)
+    x_train, x_test, y_train, _ = train_test_split(x_data, y_data, test_size=0.2, shuffle=False)
+    time_train, time_test = train_test_split(time_data, test_size=0.2, shuffle=False)
+    sgd.fit(x_train, y_train)
+    y_pred = sgd.predict(x_test)
     
     kline_open = [num[0] for num in x_train]
     kline_high = [num[1] for num in x_train]
