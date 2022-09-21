@@ -6,11 +6,10 @@ import prettytable as pt
 from flask import *
 from telegram import *
 from telegram.ext import *
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 
 base_url = "https://api.binance.com"
-
 api_token = str(os.environ['API_TOKEN'])
 bot = Bot(api_token)
 dispatcher = Dispatcher(bot, None)
@@ -163,10 +162,6 @@ def depthchart(update : Update, context : CallbackContext):
     bids_qty = [data[1] for data in depth_bids_json]
     asks_price = [data[0] for data in depth_asks_json]
     asks_qty = [data[1] for data in depth_asks_json]
-    bids_price.sort()
-    bids_qty.sort(reverse=True)
-    asks_price.sort()
-    asks_qty.sort()
 
     plt.figure()
     plt.title("%s - Depth Chart" % trade_pair)
@@ -197,10 +192,10 @@ def klinechart(update : Update, context : CallbackContext):
 
     plt.figure()
     plt.title("%s - Kline Chart" % trade_pair)
-    plt.plot(kline_open, label="open")
-    plt.plot(kline_high, label="high")
-    plt.plot(kline_low, label="low")
-    plt.plot(kline_close, label="close")
+    plt.plot(kline_open, color='g')
+    plt.plot(kline_high, color='g')
+    plt.plot(kline_low, color='g')
+    plt.plot(kline_close, color='g')
     plt.ylabel("price")
     plt.tight_layout()
     plt.savefig("kline.png")
@@ -212,7 +207,7 @@ def predictchart(update : Update, context : CallbackContext):
         update.message.reply_text("Please input predict chart argument.")
         return
     
-    linear = LinearRegression()
+    randomforest = RandomForestRegressor()
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
@@ -232,19 +227,24 @@ def predictchart(update : Update, context : CallbackContext):
 
     x_data = numpy.array(x_data, dtype=numpy.float32)
     y_data = numpy.array(y_data, dtype=numpy.float32)
-    x_train, x_test, y_train, _, time_train, time_test = train_test_split(x_data, y_data, time_data, test_size=0.2, shuffle=False)
-    linear.fit(x_train, y_train)
-    prediction = linear.predict(x_test)
-    kline_open = [float(num[0]) for num in x_train]
-    kline_high = [float(num[1]) for num in x_train]
-    kline_low = [float(num[2]) for num in x_train]
-    predict = [float(num) for num in prediction]
+    x_train, x_test, y_train, _, time_train, time_test = train_test_split(x_data, y_data, time_data, test_size=0.3, shuffle=False)
+    randomforest.fit(x_train, y_train)
+   
+    kline_open = [num[0] for num in x_train]
+    kline_high = [num[1] for num in x_train]
+    kline_low = [num[2] for num in x_train]
+    predict_open = [num for num in randomforest.predict(x_test[:, 0:1])]
+    predict_high = [num for num in randomforest.predict(x_test[:, 1:2])]    
+    predict_low = [num for num in randomforest.predict(x_test[:, 2:3])]   
     plt.figure()
     plt.title("%s - Predict Chart" % trade_pair)
-    plt.plot(time_train, kline_open, color='g', label="kline")
+    plt.plot(time_train, kline_open, color='g')
     plt.plot(time_train, kline_high, color='g')
     plt.plot(time_train, kline_low, color='g')
-    plt.plot(time_test, predict, color='b', label="predict")
+    plt.plot(time_test, predict_open, color='b')
+    plt.plot(time_test, predict_high, color='b')
+    plt.plot(time_test, predict_low, color='b')
+
     plt.tight_layout()
     plt.savefig("predict.png")
     update.message.reply_photo(open("predict.png", "rb"))
