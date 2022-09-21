@@ -11,7 +11,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 
-
 base_url = "https://api2.binance.com"
 api_token = str(os.environ['API_TOKEN'])
 bot = Bot(api_token)
