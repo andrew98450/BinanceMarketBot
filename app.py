@@ -6,7 +6,7 @@ import prettytable as pt
 from flask import *
 from telegram import *
 from telegram.ext import *
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import train_test_split
 
 base_url = "https://api.binance.com"
@@ -207,7 +207,7 @@ def predictchart(update : Update, context : CallbackContext):
         update.message.reply_text("Please input predict chart argument.")
         return
     
-    randomforest = RandomForestRegressor(max_depth=5)
+    knn = KNeighborsRegressor()
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
@@ -228,12 +228,13 @@ def predictchart(update : Update, context : CallbackContext):
     x_data = numpy.array(x_data, dtype=numpy.float32)
     y_data = numpy.array(y_data, dtype=numpy.float32)
     x_train, x_test, y_train, _, time_train, time_test = train_test_split(x_data, y_data, time_data, test_size=0.3, shuffle=False)
-    randomforest.fit(x_train, y_train)
-   
+    knn.fit(x_train, y_train)
+    y_pred = knn.predict(x_test)
+    
     kline_open = [num[0] for num in x_train]
     kline_high = [num[1] for num in x_train]
     kline_low = [num[2] for num in x_train]
-    predict = [num for num in randomforest.predict(x_test)]
+    predict = [num for num in y_pred]
 
     plt.figure()
     plt.title("%s - Predict Chart" % trade_pair)
