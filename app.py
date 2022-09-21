@@ -6,9 +6,7 @@ import prettytable as pt
 from flask import *
 from telegram import *
 from telegram.ext import *
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LinearRegression
+from sklearn.svm import SVR
 from sklearn.model_selection import train_test_split
 
 base_url = "https://api.binance.com"
@@ -208,10 +206,10 @@ def predictchart(update : Update, context : CallbackContext):
     if len(context.args) != 2:
         update.message.reply_text("Please input predict chart argument.")
         return
-    
-    linear = make_pipeline(StandardScaler(), LinearRegression())
+
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
+    svr = SVR()
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
     response_json = response.json()
@@ -230,16 +228,19 @@ def predictchart(update : Update, context : CallbackContext):
     x_data = numpy.array(x_data, dtype=numpy.float32)
     y_data = numpy.array(y_data, dtype=numpy.float32)
     
-    x_train, x_test, y_train, _, time_train, time_test = train_test_split(x_data, y_data, time_data, test_size=0.3, shuffle=False)
-    x = numpy.random.shuffle(x_train)
-    y = numpy.random.shuffle(y_train)
-    linear = linear.fit(x, y)
-    y_pred = linear.predict(x_test)
+    x_train, x_test, y_train, _ = train_test_split(x_data, y_data, test_size=0.3, shuffle=False)
+    time_train, time_test = train_test_split(time_data, test_size=0.3, shuffle=False)
+    svr.fit(x_train, y_train)
+    y_pred = svr.predict(x_test)
     
     kline_open = [num[0] for num in x_train]
     kline_high = [num[1] for num in x_train]
     kline_low = [num[2] for num in x_train]
     kline_close = [num[3] for num in x_train]
+    kline_test_open = [num[0] for num in x_test]
+    kline_test_high = [num[1] for num in x_test]
+    kline_test_low = [num[2] for num in x_test]
+    kline_test_close = [num[3] for num in x_test]
     predict = [num for num in y_pred]
 
     plt.figure()
@@ -248,6 +249,10 @@ def predictchart(update : Update, context : CallbackContext):
     plt.plot(time_train, kline_high, color='g')
     plt.plot(time_train, kline_low, color='g')
     plt.plot(time_train, kline_close, color='g')
+    plt.plot(time_test, kline_test_open, color='r')
+    plt.plot(time_test, kline_test_high, color='r')
+    plt.plot(time_test, kline_test_low, color='r')
+    plt.plot(time_test, kline_test_close, color='r')
     plt.plot(time_test, predict, color='b')
     plt.tight_layout()
     plt.savefig("predict.png")
