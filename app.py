@@ -233,18 +233,14 @@ def predictchart(update : Update, context : CallbackContext):
     kline_open = [num[0] for num in x_train]
     kline_high = [num[1] for num in x_train]
     kline_low = [num[2] for num in x_train]
-    predict_open = [num[0] for num in randomforest.predict(x_test)]
-    predict_high = [num[1] for num in randomforest.predict(x_test)]    
-    predict_low = [num[2] for num in randomforest.predict(x_test)]   
+    predict = [num for num in randomforest.predict(x_test)]
+
     plt.figure()
     plt.title("%s - Predict Chart" % trade_pair)
     plt.plot(time_train, kline_open, color='g')
     plt.plot(time_train, kline_high, color='g')
     plt.plot(time_train, kline_low, color='g')
-    plt.plot(time_test, predict_open, color='b')
-    plt.plot(time_test, predict_high, color='b')
-    plt.plot(time_test, predict_low, color='b')
-
+    plt.plot(time_test, predict, color='b')
     plt.tight_layout()
     plt.savefig("predict.png")
     update.message.reply_photo(open("predict.png", "rb"))
