@@ -207,7 +207,7 @@ def predictchart(update : Update, context : CallbackContext):
         update.message.reply_text("Please input predict chart argument.")
         return
     
-    randomforest = RandomForestRegressor()
+    randomforest = RandomForestRegressor(max_depth=5)
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
@@ -233,9 +233,9 @@ def predictchart(update : Update, context : CallbackContext):
     kline_open = [num[0] for num in x_train]
     kline_high = [num[1] for num in x_train]
     kline_low = [num[2] for num in x_train]
-    predict_open = [num for num in randomforest.predict(x_test[:, 0:1])]
-    predict_high = [num for num in randomforest.predict(x_test[:, 1:2])]    
-    predict_low = [num for num in randomforest.predict(x_test[:, 2:3])]   
+    predict_open = [num[0] for num in randomforest.predict(x_test)]
+    predict_high = [num[1] for num in randomforest.predict(x_test)]    
+    predict_low = [num[2] for num in randomforest.predict(x_test)]   
     plt.figure()
     plt.title("%s - Predict Chart" % trade_pair)
     plt.plot(time_train, kline_open, color='g')
