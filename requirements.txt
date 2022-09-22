@@ -2,6 +2,7 @@ python-telegram-bot
 Flask
 numpy
 requests
+pandas
 matplotlib
 scikit-learn
 prettytable
