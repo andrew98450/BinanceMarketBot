@@ -228,7 +228,7 @@ def predictchart(update : Update, context : CallbackContext):
     time_data = numpy.array(time_data, dtype=numpy.int32)
     test_index = int(len(x_data) - (len(x_data) * 0.2))
 
-    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.2, shuffle=True)
+    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.2, shuffle=True, random_state=42)
     time_train, time_test = train_test_split(time_data, test_size=0.2, shuffle=False)
     x_test = df[['open', 'high', 'low']].to_numpy(dtype=numpy.float32)
     x_test = x_test[test_index:]
