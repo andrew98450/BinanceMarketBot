@@ -9,7 +9,7 @@ from telegram import *
 from telegram.ext import *
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 
 base_url = "https://api.binance.com"
@@ -212,7 +212,7 @@ def predictchart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
-    linear = make_pipeline(StandardScaler(), DecisionTreeRegressor(max_depth=10))
+    linear = make_pipeline(StandardScaler(), LinearRegression())
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
     response_json = response.json()
@@ -228,10 +228,10 @@ def predictchart(update : Update, context : CallbackContext):
     x_data = numpy.array(df_random[['open', 'high', 'low']], dtype=numpy.float32)
     y_data = numpy.array(df_random['close'], dtype=numpy.float32)
     time_data = numpy.array(time_data, dtype=numpy.int32)
-    test_index = int(len(x_data) - (len(x_data) * 0.4))
+    test_index = int(len(x_data) - (len(x_data) * 0.2))
 
-    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.4, shuffle=True)
-    time_train, time_test = train_test_split(time_data, test_size=0.4, shuffle=False)
+    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.2, shuffle=True)
+    time_train, time_test = train_test_split(time_data, test_size=0.2, shuffle=False)
     x_test = df[['open', 'high', 'low']].to_numpy(dtype=numpy.float32)
     x_test = x_test[test_index:]
     y_test = df['close'].to_numpy(dtype=numpy.float32)
