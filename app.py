@@ -109,7 +109,7 @@ def depthinfo(update : Update, context : CallbackContext):
     update.message.reply_text(f'<pre>{ask_table}</pre>', parse_mode=ParseMode.HTML)
 
 def klineinfo(update : Update, context : CallbackContext):
-    if len(context.args) != 3:
+    if len(context.args) != 2:
         update.message.reply_text("Please input kline info argument.")
         return
 
@@ -176,7 +176,7 @@ def depthchart(update : Update, context : CallbackContext):
     update.message.reply_photo(open("depth.png", "rb"))
 
 def klinechart(update : Update, context : CallbackContext):
-    if len(context.args) != 3:
+    if len(context.args) != 2:
         update.message.reply_text("Please input kline chart argument.")
         return
     
