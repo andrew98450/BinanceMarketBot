@@ -3,15 +3,16 @@ import numpy
 import requests
 import matplotlib.pyplot as plt
 import prettytable as pt
+import pandas
 from flask import *
 from telegram import *
 from telegram.ext import *
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 
-base_url = "https://api2.binance.com"
+base_url = "https://api.binance.com"
 api_token = str(os.environ['API_TOKEN'])
 bot = Bot(api_token)
 dispatcher = Dispatcher(bot, None)
@@ -211,40 +212,47 @@ def predictchart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
-    linear = make_pipeline(StandardScaler(), RandomForestRegressor(max_depth=10))
+    linear = make_pipeline(StandardScaler(), DecisionTreeRegressor(max_depth=10))
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
     response_json = response.json()
-
-    x_data = []
-    y_data = []
+    response_json = numpy.array(response_json)[:, 0:5]
+    df = pandas.DataFrame(response_json, columns=['time', 'open', 'high', 'low', 'close'])
+    df_random = df.copy()
     time_data = []
-    for iters, kline_data in enumerate(response_json, 0):
-        x = kline_data[1:5]
-        y = kline_data[4]
-        x_data.append(x)
-        y_data.append(y)
-        time_data.append(iters)
+    for i, _ in enumerate(df['time'], 0):
+        time_data.append(i)
 
-    x_data = numpy.array(x_data, dtype=numpy.float32)
-    y_data = numpy.array(y_data, dtype=numpy.float32)
+    df_random = df_random.reindex(numpy.random.permutation(df_random.index))
+
+    x_data = numpy.array(df_random[['open', 'high', 'low']], dtype=numpy.float32)
+    y_data = numpy.array(df_random['close'], dtype=numpy.float32)
+    time_data = numpy.array(time_data, dtype=numpy.int32)
+    test_index = int(len(x_data) - (len(x_data) * 0.4))
+
+    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.4, shuffle=True)
+    time_train, time_test = train_test_split(time_data, test_size=0.4, shuffle=False)
+    x_test = df[['open', 'high', 'low']].to_numpy(dtype=numpy.float32)
+    x_test = x_test[test_index:]
+    y_test = df['close'].to_numpy(dtype=numpy.float32)
+    y_test = y_test[test_index:]
+    linear.fit(x_train, y_train)
+    y_pred = linear.predict(x_test)
+
+    data = df[['open', 'high', 'low', 'close']].to_numpy(dtype=numpy.float32)
+    train_data = data[:test_index]
+    test_data = data[test_index:]
+    kline_open = [num for num in train_data[:, 0]]
+    kline_high = [num for num in train_data[:, 1]]
+    kline_low = [num for num in train_data[:, 2]]
+    kline_close = [num for num in train_data[:, 3]]
     
-    test_size = int(len(x_data) - (len(x_data) * 0.2))
-
-    x_train, x_test, y_train, _ = train_test_split(x_data, y_data, test_size=0.2, shuffle=False)
-    time_train, time_test = train_test_split(time_data, test_size=0.2, shuffle=False)
-    y_pred = linear.fit(x_train, y_train).predict(x_test)
-
-    kline_open = [num[0] for num in x_data[:test_size]]
-    kline_high = [num[1] for num in x_data[:test_size]]
-    kline_low = [num[2] for num in x_data[:test_size]]
-    kline_close = [num[3] for num in x_data[:test_size]]
-    kline_test_open = [num[0] for num in x_data[test_size:]]
-    kline_test_high = [num[1] for num in x_data[test_size:]]
-    kline_test_low = [num[2] for num in x_data[test_size:]]
-    kline_test_close = [num[3] for num in x_data[test_size:]]
+    kline_test_open = [num for num in test_data[:, 0]]
+    kline_test_high = [num for num in test_data[:, 1]]
+    kline_test_low = [num for num in test_data[:, 2]]
+    kline_test_close = [num for num in test_data[:, 3]]
     predict = [num for num in y_pred]
- 
+
     plt.figure()
     plt.title("%s - Predict Chart" % trade_pair)
     plt.plot(time_train, kline_open, color='g')
