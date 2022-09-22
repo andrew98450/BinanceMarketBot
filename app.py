@@ -9,7 +9,7 @@ from telegram import *
 from telegram.ext import *
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import train_test_split
 
 base_url = "https://api.binance.com"
@@ -210,32 +210,27 @@ def predictchart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
-    randomforest = make_pipeline(StandardScaler(), RandomForestRegressor(max_depth=5))
+    mlp = make_pipeline(StandardScaler(), MLPRegressor(max_iter=200, alpha=0.01))
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
     response_json = response.json()
     response_json = numpy.array(response_json)[:, 0:5]
     df = pandas.DataFrame(response_json, columns=['time', 'open', 'high', 'low', 'close'])
-    df_random = df.copy()
+
     time_data = []
     for i, _ in enumerate(df['time'], 0):
         time_data.append(i)
 
-    df_random = df_random.reindex(numpy.random.permutation(df_random.index))
-
-    x_data = numpy.array(df_random[['open', 'high', 'low', 'close']], dtype=numpy.float32)
-    y_data = numpy.array(df_random['close'], dtype=numpy.float32)
+    x_data = numpy.array(df[['open', 'high', 'low']], dtype=numpy.float32)
+    y_data = numpy.array(df['close'], dtype=numpy.float32)
     time_data = numpy.array(time_data, dtype=numpy.int32)
     test_index = int(len(x_data) - (len(x_data) * 0.2))
 
-    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.2, shuffle=True, random_state=42)
+    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.2, shuffle=True)
     time_train, time_test = train_test_split(time_data, test_size=0.2, shuffle=False)
-    x_test = df[['open', 'high', 'low', 'close']].to_numpy(dtype=numpy.float32)
-    x_test = x_test[test_index:]
-    y_test = df['close'].to_numpy(dtype=numpy.float32)
-    y_test = y_test[test_index:]
-    randomforest.fit(x_train, y_train)
-    y_pred = randomforest.predict(x_test)
+    x_test = x_data[test_index:]
+    fited_mlp = mlp.fit(x_train, y_train)
+    y_pred = fited_mlp.predict(x_test)
 
     data = df[['open', 'high', 'low', 'close']].to_numpy(dtype=numpy.float32)
     train_data = data[:test_index]
@@ -244,7 +239,6 @@ def predictchart(update : Update, context : CallbackContext):
     kline_high = [num for num in train_data[:, 1]]
     kline_low = [num for num in train_data[:, 2]]
     kline_close = [num for num in train_data[:, 3]]
-    
     kline_test_open = [num for num in test_data[:, 0]]
     kline_test_high = [num for num in test_data[:, 1]]
     kline_test_low = [num for num in test_data[:, 2]]
@@ -253,23 +247,15 @@ def predictchart(update : Update, context : CallbackContext):
 
     plt.figure()
     plt.title("%s - Predict Chart" % trade_pair)
-    ax = plt.subplot(2, 1, 1)
-    ax.set_title("Test")
-    ax.plot(time_train, kline_open, color='g')
-    ax.plot(time_train, kline_high, color='g')
-    ax.plot(time_train, kline_low, color='g')
-    ax.plot(time_train, kline_close, color='g')
-    ax.plot(time_test, kline_test_open, color='r')
-    ax.plot(time_test, kline_test_high, color='r')
-    ax.plot(time_test, kline_test_low, color='r')
-    ax.plot(time_test, kline_test_close, color='r')
-    ax = plt.subplot(2, 1, 2)
-    ax.set_title("Predict")
-    ax.plot(time_train, kline_open, color='g')
-    ax.plot(time_train, kline_high, color='g')
-    ax.plot(time_train, kline_low, color='g')
-    ax.plot(time_train, kline_close, color='g')
-    ax.plot(time_test, predict, color='b')
+    plt.plot(time_train, kline_open, color='g')
+    plt.plot(time_train, kline_high, color='g')
+    plt.plot(time_train, kline_low, color='g')
+    plt.plot(time_train, kline_close, color='g')
+    plt.plot(time_test, kline_test_open, color='r')
+    plt.plot(time_test, kline_test_high, color='r')
+    plt.plot(time_test, kline_test_low, color='r')
+    plt.plot(time_test, kline_test_close, color='r')
+    plt.plot(time_test, predict, color='b')
     plt.tight_layout()
     plt.savefig("predict.png")
     update.message.reply_photo(open("predict.png", "rb"))
