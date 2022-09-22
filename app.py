@@ -9,7 +9,7 @@ from telegram import *
 from telegram.ext import *
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVR
+from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 
 base_url = "https://api.binance.com"
@@ -210,7 +210,7 @@ def predictchart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
-    svr = make_pipeline(StandardScaler(), SVR())
+    linear = make_pipeline(StandardScaler(), LinearRegression())
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
     response_json = response.json()
@@ -234,8 +234,8 @@ def predictchart(update : Update, context : CallbackContext):
     x_test = x_test[test_index:]
     y_test = df['close'].to_numpy(dtype=numpy.float32)
     y_test = y_test[test_index:]
-    svr.fit(x_train, y_train)
-    y_pred = svr.predict(x_test)
+    linear.fit(x_train, y_train)
+    y_pred = linear.predict(x_test)
 
     data = df[['open', 'high', 'low', 'close']].to_numpy(dtype=numpy.float32)
     train_data = data[:test_index]
