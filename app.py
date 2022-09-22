@@ -9,7 +9,7 @@ from telegram import *
 from telegram.ext import *
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LinearRegression
+from sklearn.svm import SVR
 from sklearn.model_selection import train_test_split
 
 base_url = "https://api.binance.com"
@@ -23,10 +23,10 @@ def start(update : Update, context : CallbackContext):
     help_str += "/priceinfo <trade_pair> ... -> Price information.\n"
     help_str += "/tradeinfo <trade_pair> <n> -> Trade information.\n"
     help_str += "/depthinfo <trade_pair> <n> -> Depth information.\n"
-    help_str += "/klineinfo <trade_pair> <interval> <n> -> Kline information.\n"
+    help_str += "/klineinfo <trade_pair> <interval> -> Kline information.\n"
     help_str += "/tradechart <trade_pair> <n> -> View trade chart.\n"
     help_str += "/depthchart <trade_pair> <n> -> View depth chart.\n"
-    help_str += "/klinechart <trade_pair> <interval> <n> -> View kline chart.\n"
+    help_str += "/klinechart <trade_pair> <interval> -> View kline chart.\n"
     help_str += "/predictchart <trade_pair> <interval> -> View kline predict chart."
     update.message.reply_text(help_str)
 
@@ -117,8 +117,7 @@ def klineinfo(update : Update, context : CallbackContext):
         'open', 'high', 'low', 'close'])
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
-    n = int(context.args[2])
-    url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=%d" % (trade_pair, interval, n)
+    url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=10" % (trade_pair, interval)
     response = requests.get(url=url)
     response_json = response.json()
     for kline_data in response_json:
@@ -183,9 +182,8 @@ def klinechart(update : Update, context : CallbackContext):
     
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
-    n = int(context.args[2])
 
-    url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=%d" % (trade_pair, interval, n)
+    url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
     response_json = response.json()
     kline_open = [float(num[1].replace('o', '')) for num in response_json]
@@ -212,7 +210,7 @@ def predictchart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
-    linear = make_pipeline(StandardScaler(), LinearRegression())
+    svr = make_pipeline(StandardScaler(), SVR())
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
     response_json = response.json()
@@ -228,16 +226,16 @@ def predictchart(update : Update, context : CallbackContext):
     x_data = numpy.array(df_random[['open', 'high', 'low']], dtype=numpy.float32)
     y_data = numpy.array(df_random['close'], dtype=numpy.float32)
     time_data = numpy.array(time_data, dtype=numpy.int32)
-    test_index = int(len(x_data) - (len(x_data) * 0.1))
+    test_index = int(len(x_data) - (len(x_data) * 0.2))
 
-    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.1, shuffle=True)
-    time_train, time_test = train_test_split(time_data, test_size=0.1, shuffle=False)
+    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.2, shuffle=True)
+    time_train, time_test = train_test_split(time_data, test_size=0.2, shuffle=False)
     x_test = df[['open', 'high', 'low']].to_numpy(dtype=numpy.float32)
     x_test = x_test[test_index:]
     y_test = df['close'].to_numpy(dtype=numpy.float32)
     y_test = y_test[test_index:]
-    linear.fit(x_train, y_train)
-    y_pred = linear.predict(x_test)
+    svr.fit(x_train, y_train)
+    y_pred = svr.predict(x_test)
 
     data = df[['open', 'high', 'low', 'close']].to_numpy(dtype=numpy.float32)
     train_data = data[:test_index]
@@ -255,15 +253,23 @@ def predictchart(update : Update, context : CallbackContext):
 
     plt.figure()
     plt.title("%s - Predict Chart" % trade_pair)
-    plt.plot(time_train, kline_open, color='g')
-    plt.plot(time_train, kline_high, color='g')
-    plt.plot(time_train, kline_low, color='g')
-    plt.plot(time_train, kline_close, color='g')
-    plt.plot(time_test, kline_test_open, color='r')
-    plt.plot(time_test, kline_test_high, color='r')
-    plt.plot(time_test, kline_test_low, color='r')
-    plt.plot(time_test, kline_test_close, color='r')
-    plt.plot(time_test, predict, color='b')
+    ax = plt.subplot(2, 1, 1)
+    ax.set_title("Test")
+    ax.plot(time_train, kline_open, color='g')
+    ax.plot(time_train, kline_high, color='g')
+    ax.plot(time_train, kline_low, color='g')
+    ax.plot(time_train, kline_close, color='g')
+    ax.plot(time_test, kline_test_open, color='r')
+    ax.plot(time_test, kline_test_high, color='r')
+    ax.plot(time_test, kline_test_low, color='r')
+    ax.plot(time_test, kline_test_close, color='r')
+    ax = plt.subplot(2, 1, 2)
+    ax.set_title("Predict")
+    ax.plot(time_train, kline_open, color='g')
+    ax.plot(time_train, kline_high, color='g')
+    ax.plot(time_train, kline_low, color='g')
+    ax.plot(time_train, kline_close, color='g')
+    ax.plot(time_test, predict, color='b')
     plt.tight_layout()
     plt.savefig("predict.png")
     update.message.reply_photo(open("predict.png", "rb"))
