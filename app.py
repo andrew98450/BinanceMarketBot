@@ -27,7 +27,7 @@ def start(update : Update, context : CallbackContext):
     help_str += "/tradechart <trade_pair> <n> -> View trade chart.\n"
     help_str += "/depthchart <trade_pair> <n> -> View depth chart.\n"
     help_str += "/klinechart <trade_pair> <interval> -> View kline chart.\n"
-    help_str += "/predictchart <trade_pair> <interval> -> View kline predict chart."
+    help_str += "/predictchart <trade_pair> <interval> -> View kline predict chart.\n"
     help_str += "/futurechart <trade_pair> <n_day> -> View kline future predict chart."
     update.message.reply_text(help_str)
 
