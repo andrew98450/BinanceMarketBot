@@ -263,7 +263,7 @@ def predictchart(update : Update, context : CallbackContext):
 
 def futurechart(update : Update, context : CallbackContext):
     if len(context.args) != 2:
-        update.message.reply_text("Please input predict chart argument.")
+        update.message.reply_text("Please input future chart argument.")
         return
 
     trade_pair = str(context.args[0])
