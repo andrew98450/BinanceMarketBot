@@ -225,10 +225,10 @@ def predictchart(update : Update, context : CallbackContext):
     x_data = numpy.array(df[['open']], dtype=numpy.float32)
     y_data = numpy.array(df['close'], dtype=numpy.float32)
     time_data = numpy.array(time_data, dtype=numpy.int32)
-    test_index = int(len(x_data) - (len(x_data) * 0.1))
+    test_index = int(len(x_data) - (len(x_data) * 0.2))
 
-    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.1, shuffle=True)
-    time_train, time_test = train_test_split(time_data, test_size=0.1, shuffle=False)
+    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.2)
+    time_train, time_test = train_test_split(time_data, test_size=0.2, shuffle=False)
     x_test = x_data[test_index:]
     model = model.fit(x_train, y_train)
     y_pred = model.predict(x_test)
@@ -282,10 +282,10 @@ def futurechart(update : Update, context : CallbackContext):
     x_data = numpy.array(df[['open']], dtype=numpy.float32)
     y_data = numpy.array(df['close'], dtype=numpy.float32)
     time_data = numpy.array(time_data, dtype=numpy.int32)
-    test_index = int(len(x_data) - (len(x_data) * 0.1))
+    test_index = int(len(x_data) - (len(x_data) * 0.2))
 
-    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.1, shuffle=True)
-    time_train, time_test = train_test_split(time_data, test_size=0.1, shuffle=False)
+    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.2)
+    time_train, time_test = train_test_split(time_data, test_size=0.2, shuffle=False)
     x_test = x_data[test_index:]
     model = model.fit(x_train, y_train)
     y_pred = model.predict(x_test)
