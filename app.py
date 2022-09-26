@@ -9,7 +9,7 @@ from telegram import *
 from telegram.ext import *
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LinearRegression
+from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import train_test_split
 
 base_url = "https://api.binance.com"
@@ -28,6 +28,7 @@ def start(update : Update, context : CallbackContext):
     help_str += "/depthchart <trade_pair> <n> -> View depth chart.\n"
     help_str += "/klinechart <trade_pair> <interval> -> View kline chart.\n"
     help_str += "/predictchart <trade_pair> <interval> -> View kline predict chart."
+    help_str += "/futurechart <trade_pair> <n_day> -> View kline future predict chart."
     update.message.reply_text(help_str)
 
 def priceinfo(update : Update, context : CallbackContext):
@@ -210,7 +211,7 @@ def predictchart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
-    lr = make_pipeline(StandardScaler(), LinearRegression())
+    model = make_pipeline(StandardScaler(), MLPRegressor(max_iter=500))
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
     response_json = response.json()
@@ -221,7 +222,7 @@ def predictchart(update : Update, context : CallbackContext):
     for i, _ in enumerate(df['time'], 0):
         time_data.append(i)
 
-    x_data = numpy.array(df[['open', 'high', 'low']], dtype=numpy.float32)
+    x_data = numpy.array(df[['open']], dtype=numpy.float32)
     y_data = numpy.array(df['close'], dtype=numpy.float32)
     time_data = numpy.array(time_data, dtype=numpy.int32)
     test_index = int(len(x_data) - (len(x_data) * 0.2))
@@ -229,8 +230,8 @@ def predictchart(update : Update, context : CallbackContext):
     x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.2, shuffle=True)
     time_train, time_test = train_test_split(time_data, test_size=0.2, shuffle=False)
     x_test = x_data[test_index:]
-    fited_lr = lr.fit(x_train, y_train)
-    y_pred = fited_lr.predict(x_test)
+    model = model.fit(x_train, y_train)
+    y_pred = model.predict(x_test)
 
     data = df[['open', 'high', 'low', 'close']].to_numpy(dtype=numpy.float32)
     train_data = data[:test_index]
@@ -260,6 +261,72 @@ def predictchart(update : Update, context : CallbackContext):
     plt.savefig("predict.png")
     update.message.reply_photo(open("predict.png", "rb"))
 
+def futurechart(update : Update, context : CallbackContext):
+    if len(context.args) != 2:
+        update.message.reply_text("Please input predict chart argument.")
+        return
+
+    trade_pair = str(context.args[0])
+    n_day = int(context.args[1])
+    model = make_pipeline(StandardScaler(), MLPRegressor(max_iter=500))
+    url = base_url + "/api/v3/klines?symbol=%s&interval=1d&limit=1000" % (trade_pair)
+    response = requests.get(url=url)
+    response_json = response.json()
+    response_json = numpy.array(response_json)[:, 0:5]
+    df = pandas.DataFrame(response_json, columns=['time', 'open', 'high', 'low', 'close'])
+
+    time_data = []
+    for i, _ in enumerate(df['time'], 0):
+        time_data.append(i)
+
+    x_data = numpy.array(df[['open']], dtype=numpy.float32)
+    y_data = numpy.array(df['close'], dtype=numpy.float32)
+    time_data = numpy.array(time_data, dtype=numpy.int32)
+    test_index = int(len(x_data) - (len(x_data) * 0.2))
+
+    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.2, shuffle=True)
+    time_train, time_test = train_test_split(time_data, test_size=0.2, shuffle=False)
+    x_test = x_data[test_index:]
+    model = model.fit(x_train, y_train)
+    y_pred = model.predict(x_test)
+
+    y_future_pred = []
+    x_future = y_pred[-n_day:].reshape((-1, 1))
+    y_hat = model.predict(x_future[0:1])
+    y_hat = y_hat.reshape((-1, 1))
+    tmp_future = y_hat
+    y_future_pred.extend(y_hat)
+    for i in range(1, n_day):
+        tmp_future = numpy.concatenate((x_future[i:i+1], tmp_future), axis=0)
+        y_hat = model.predict(tmp_future.reshape((-1, 1)))
+        y_hat = y_hat.reshape((-1, 1))
+        tmp_future = y_hat
+        y_future_pred.extend(y_hat)
+    y_future_pred = numpy.array(y_future_pred[-n_day:]).squeeze()
+    y_future_pred = y_future_pred.tolist()
+    time_future = [time_test[-1] + num for num in range(1, n_day + 1)]
+
+    data = df[['open', 'high', 'low', 'close']].to_numpy(dtype=numpy.float32)
+    test_data = data[test_index:]
+    kline_test_open = [num for num in test_data[:, 0]]
+    kline_test_high = [num for num in test_data[:, 1]]
+    kline_test_low = [num for num in test_data[:, 2]]
+    kline_test_close = [num for num in test_data[:, 3]]
+    predict = [num for num in y_pred]
+    future_predict = [num for num in y_future_pred]
+
+    plt.figure()
+    plt.title("%s - Predict Chart" % trade_pair)
+    plt.plot(time_test, kline_test_open, color='r')
+    plt.plot(time_test, kline_test_high, color='r')
+    plt.plot(time_test, kline_test_low, color='r')
+    plt.plot(time_test, kline_test_close, color='r')
+    plt.plot(time_test, predict, color='b')
+    plt.plot(time_future, future_predict, color='g')
+    plt.tight_layout()
+    plt.savefig("future.png")
+    update.message.reply_photo(open("future.png", "rb"))
+
 dispatcher.add_handler(CommandHandler("start", start))
 dispatcher.add_handler(CommandHandler("priceinfo", priceinfo))
 dispatcher.add_handler(CommandHandler("tradeinfo", tradeinfo))
@@ -269,6 +336,7 @@ dispatcher.add_handler(CommandHandler("tradechart", tradechart))
 dispatcher.add_handler(CommandHandler("depthchart", depthchart))
 dispatcher.add_handler(CommandHandler("klinechart", klinechart))
 dispatcher.add_handler(CommandHandler("predictchart", predictchart))
+dispatcher.add_handler(CommandHandler("futurechart", futurechart))
 
 @app.route("/webhook", methods=['GET', 'POST'])
 def webhook():
