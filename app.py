@@ -7,7 +7,7 @@ import pandas
 from flask import *
 from telegram import *
 from telegram.ext import *
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import train_test_split
 
@@ -210,8 +210,8 @@ def predictchart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
-    model = MLPRegressor(max_iter=200, activation='relu')
-    scaler = StandardScaler()
+    model = MLPRegressor(hidden_layer_sizes=(64, 128, 64), max_iter=100, activation='identity')
+    scaler = MinMaxScaler()
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
     response_json = response.json()
@@ -271,8 +271,8 @@ def futurechart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     n_day = int(context.args[1])
-    model = MLPRegressor(max_iter=200, activation='relu')
-    scaler = StandardScaler()
+    model = MLPRegressor(hidden_layer_sizes=(64, 128, 64), max_iter=100, activation='identity')
+    scaler = MinMaxScaler()
     url = base_url + "/api/v3/klines?symbol=%s&interval=1d&limit=1000" % (trade_pair)
     response = requests.get(url=url)
     response_json = response.json()
@@ -286,10 +286,10 @@ def futurechart(update : Update, context : CallbackContext):
     x_data = numpy.array(df[['open']], dtype=numpy.float32)
     y_data = numpy.array(df['close'], dtype=numpy.float32)
     time_data = numpy.array(time_data, dtype=numpy.int32)
-    test_index = int(len(x_data) - (len(x_data) * 0.1))
-
-    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.1)
-    time_train, time_test = train_test_split(time_data, test_size=0.1, shuffle=False)
+    test_index = int(len(x_data) - (len(x_data) * 0.3))
+    
+    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.3)
+    _, time_test = train_test_split(time_data, test_size=0.3, shuffle=False)
     x_train = scaler.fit_transform(x_train)
     y_train = scaler.fit_transform(y_train.reshape((-1, 1))).squeeze()
     x_test = scaler.fit_transform(x_data[test_index:])
@@ -303,31 +303,25 @@ def futurechart(update : Update, context : CallbackContext):
     tmp_future = y_hat
     y_future_pred.extend(y_hat)
     for i in range(1, n_day):
-        tmp_future = numpy.concatenate((x_future[i:i+1], tmp_future), axis=0)
-        y_hat = model.predict(tmp_future.reshape((-1, 1)))
+        future = numpy.concatenate((x_future[i:i+1], tmp_future), axis=0)
+        y_hat = model.predict(future.reshape((-1, 1)))
         y_hat = y_hat.reshape((-1, 1))
         tmp_future = y_hat
         y_future_pred.extend(y_hat)
     y_future_pred = numpy.array(y_future_pred[-n_day:]).squeeze()
     time_future = [time_test[-1] + num for num in range(1, n_day + 1)]
 
-    data = df[['open', 'high', 'low', 'close']].to_numpy(dtype=numpy.float32)
+    data = df['close'].to_numpy(dtype=numpy.float32)
     test_data = data[test_index:]
     y_pred = scaler.inverse_transform(y_pred.reshape((-1, 1))).squeeze()
     y_future_pred = scaler.inverse_transform(y_future_pred.reshape((-1, 1))).squeeze()
-    kline_test_open = [num for num in test_data[:, 0]]
-    kline_test_high = [num for num in test_data[:, 1]]
-    kline_test_low = [num for num in test_data[:, 2]]
-    kline_test_close = [num for num in test_data[:, 3]]
+    kline_test = [num for num in test_data]
     predict = [num for num in y_pred]
     future_predict = [num for num in y_future_pred]
 
     plt.figure()
     plt.title("%s - Future Chart" % trade_pair)
-    plt.plot(time_test, kline_test_open, color='r')
-    plt.plot(time_test, kline_test_high, color='r')
-    plt.plot(time_test, kline_test_low, color='r')
-    plt.plot(time_test, kline_test_close, color='r')
+    plt.plot(time_test, kline_test, color='r')
     plt.plot(time_test, predict, color='b')
     plt.plot(time_future, future_predict, color='g')
     plt.tight_layout()
