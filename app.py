@@ -310,7 +310,6 @@ def futurechart(update : Update, context : CallbackContext):
         tmp_future = y_hat
         y_future_pred.extend(y_hat)
     y_future_pred = numpy.array(y_future_pred[-n_day:]).squeeze()
-    y_future_pred = y_future_pred.tolist()
     time_future = [time_test[-1] + num for num in range(1, n_day + 1)]
 
     data = df[['open', 'high', 'low', 'close']].to_numpy(dtype=numpy.float32)
