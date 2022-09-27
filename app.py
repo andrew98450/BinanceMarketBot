@@ -271,7 +271,8 @@ def futurechart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     n_day = int(context.args[1])
-    model = MLPRegressor(hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='identity')
+    model = MLPRegressor(
+        hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='identity', random_state=0)
     scaler = MinMaxScaler()
     url = base_url + "/api/v3/klines?symbol=%s&interval=1d&limit=1000" % (trade_pair)
     response = requests.get(url=url)
