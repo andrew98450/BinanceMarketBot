@@ -210,7 +210,7 @@ def predictchart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
-    model = MLPRegressor(max_iter=300, activation='relu')
+    model = MLPRegressor(max_iter=500, activation='relu')
     scaler = StandardScaler()
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
@@ -271,9 +271,9 @@ def futurechart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     n_day = int(context.args[1])
-    model = MLPRegressor(max_iter=300, activation='relu')
+    model = MLPRegressor(max_iter=500, activation='relu')
     scaler = StandardScaler()
-    url = base_url + "/api/v3/klines?symbol=%s&interval=1d&limit=1000" % (trade_pair)
+    url = base_url + "/api/v3/klines?symbol=%s&interval=1m&limit=1000" % (trade_pair)
     response = requests.get(url=url)
     response_json = response.json()
     response_json = numpy.array(response_json)[:, 0:5]
