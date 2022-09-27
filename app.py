@@ -7,7 +7,6 @@ import pandas
 from flask import *
 from telegram import *
 from telegram.ext import *
-from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import train_test_split
