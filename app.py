@@ -7,7 +7,6 @@ import pandas
 from flask import *
 from telegram import *
 from telegram.ext import *
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import train_test_split
 
@@ -210,8 +209,7 @@ def predictchart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
-    model = MLPRegressor(hidden_layer_sizes=(64, 128, 64), max_iter=100, activation='identity')
-    scaler = MinMaxScaler()
+    model = MLPRegressor(hidden_layer_sizes=(64, 128, 64), max_iter=100, activation='relu')
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
     response_json = response.json()
@@ -229,16 +227,13 @@ def predictchart(update : Update, context : CallbackContext):
 
     x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.1)
     time_train, time_test = train_test_split(time_data, test_size=0.1, shuffle=False)
-    x_train = scaler.fit_transform(x_train)
-    y_train = scaler.fit_transform(y_train.reshape((-1, 1))).squeeze()
-    x_test = scaler.fit_transform(x_data[test_index:])
+    x_test = x_data[test_index:]
     model = model.fit(x_train, y_train)
     y_pred = model.predict(x_test)
 
     data = df[['open', 'high', 'low', 'close']].to_numpy(dtype=numpy.float32)
     train_data = data[:test_index]
     test_data = data[test_index:]
-    y_pred = scaler.inverse_transform(y_pred.reshape((-1, 1))).squeeze()
     kline_open = [num for num in train_data[:, 0]]
     kline_high = [num for num in train_data[:, 1]]
     kline_low = [num for num in train_data[:, 2]]
@@ -272,8 +267,7 @@ def futurechart(update : Update, context : CallbackContext):
     trade_pair = str(context.args[0])
     n_day = int(context.args[1])
     model = MLPRegressor(
-        hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='identity')
-    scaler = MinMaxScaler()
+        hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='relu')
     url = base_url + "/api/v3/klines?symbol=%s&interval=1d&limit=1000" % (trade_pair)
     response = requests.get(url=url)
     response_json = response.json()
@@ -291,9 +285,7 @@ def futurechart(update : Update, context : CallbackContext):
     
     x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.3)
     _, time_test = train_test_split(time_data, test_size=0.3, shuffle=False)
-    x_train = scaler.fit_transform(x_train)
-    y_train = scaler.fit_transform(y_train.reshape((-1, 1))).squeeze()
-    x_test = scaler.fit_transform(x_data[test_index:])
+    x_test = x_data[test_index:]
     model = model.fit(x_train, y_train)
     y_pred = model.predict(x_test)
 
@@ -314,8 +306,6 @@ def futurechart(update : Update, context : CallbackContext):
 
     data = df['close'].to_numpy(dtype=numpy.float32)
     test_data = data[test_index:]
-    y_pred = scaler.inverse_transform(y_pred.reshape((-1, 1))).squeeze()
-    y_future_pred = scaler.inverse_transform(y_future_pred.reshape((-1, 1))).squeeze()
     kline_test = [num for num in test_data]
     predict = [num for num in y_pred]
     future_predict = [num for num in y_future_pred]
