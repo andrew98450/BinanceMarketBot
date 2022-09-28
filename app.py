@@ -288,10 +288,10 @@ def futurechart(update : Update, context : CallbackContext):
     x_data = numpy.array(df[['open']], dtype=numpy.float32)
     y_data = numpy.array(df['close'], dtype=numpy.float32)
     time_data = numpy.array(time_data, dtype=numpy.int32)
-    test_index = int(len(x_data) - (len(x_data) * 0.2))
+    test_index = int(len(x_data) - (len(x_data) * 0.3))
     
-    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.2)
-    _, time_test = train_test_split(time_data, test_size=0.2, shuffle=False)
+    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.3)
+    _, time_test = train_test_split(time_data, test_size=0.3, shuffle=False)
     x_train = scaler.fit_transform(x_train)
     y_train = scaler.fit_transform(y_train.reshape((-1, 1))).squeeze()
     x_test = scaler.fit_transform(x_data[test_index:])
