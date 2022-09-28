@@ -7,7 +7,7 @@ import pandas
 from flask import *
 from telegram import *
 from telegram.ext import *
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import train_test_split
 
@@ -212,7 +212,7 @@ def predictchart(update : Update, context : CallbackContext):
     interval = str(context.args[1])
     model = MLPRegressor(
         hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='identity', shuffle=False)
-    scaler = MinMaxScaler(feature_range=(0, 1))
+    scaler = StandardScaler()
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
     response_json = response.json()
@@ -274,7 +274,7 @@ def futurechart(update : Update, context : CallbackContext):
     n_day = int(context.args[1])
     model = MLPRegressor(
         hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='identity', shuffle=False)
-    scaler = MinMaxScaler(feature_range=(0, 1))
+    scaler = StandardScaler()
     url = base_url + "/api/v3/klines?symbol=%s&interval=1d&limit=1000" % (trade_pair)
     response = requests.get(url=url)
     response_json = response.json()
