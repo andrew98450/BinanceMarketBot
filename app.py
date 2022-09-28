@@ -211,7 +211,7 @@ def predictchart(update : Update, context : CallbackContext):
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
     model = MLPRegressor(
-        hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='relu', random_state=0)
+        hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='relu')
     scaler = MinMaxScaler(feature_range=(0, 1))
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
@@ -273,7 +273,7 @@ def futurechart(update : Update, context : CallbackContext):
     trade_pair = str(context.args[0])
     n_day = int(context.args[1])
     model = MLPRegressor(
-        hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='relu', random_state=0)
+        hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='relu')
     scaler = MinMaxScaler(feature_range=(0, 1))
     url = base_url + "/api/v3/klines?symbol=%s&interval=1d&limit=1000" % (trade_pair)
     response = requests.get(url=url)
@@ -288,10 +288,10 @@ def futurechart(update : Update, context : CallbackContext):
     x_data = numpy.array(df[['open']], dtype=numpy.float32)
     y_data = numpy.array(df['close'], dtype=numpy.float32)
     time_data = numpy.array(time_data, dtype=numpy.int32)
-    test_index = int(len(x_data) - (len(x_data) * 0.3))
+    test_index = int(len(x_data) - (len(x_data) * 0.2))
     
-    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.3)
-    _, time_test = train_test_split(time_data, test_size=0.3, shuffle=False)
+    x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.2)
+    _, time_test = train_test_split(time_data, test_size=0.2, shuffle=False)
     x_train = scaler.fit_transform(x_train)
     y_train = scaler.fit_transform(y_train.reshape((-1, 1))).squeeze()
     x_test = scaler.fit_transform(x_data[test_index:])
