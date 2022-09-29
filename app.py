@@ -13,6 +13,7 @@ from sklearn.model_selection import train_test_split
 
 base_url = "https://api.binance.com"
 api_token = str(os.environ['API_TOKEN'])
+update= Updater(api_token)
 bot = Bot(api_token)
 dispatcher = Dispatcher(bot, None)
 app = Flask(__name__)
@@ -211,7 +212,7 @@ def predictchart(update : Update, context : CallbackContext):
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
     model = MLPRegressor(
-        hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='identity', shuffle=False)
+        hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='identity', shuffle=True)
     scaler = MinMaxScaler()
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
@@ -273,7 +274,7 @@ def futurechart(update : Update, context : CallbackContext):
     trade_pair = str(context.args[0])
     n_day = int(context.args[1])
     model = MLPRegressor(
-        hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='identity', shuffle=False)
+        hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='identity', shuffle=True)
     scaler = MinMaxScaler()
     url = base_url + "/api/v3/klines?symbol=%s&interval=1d&limit=1000" % (trade_pair)
     response = requests.get(url=url)
