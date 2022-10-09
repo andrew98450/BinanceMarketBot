@@ -4,11 +4,11 @@ import requests
 import matplotlib.pyplot as plt
 import prettytable as pt
 import pandas
+import tensorflow as tf
 from flask import *
 from telegram import *
 from telegram.ext import *
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import train_test_split
 
 base_url = "https://api.binance.com"
@@ -17,6 +17,13 @@ update= Updater(api_token)
 bot = Bot(api_token)
 dispatcher = Dispatcher(bot, None)
 app = Flask(__name__)
+mse = tf.keras.losses.MeanSquaredError()
+model = tf.keras.Sequential([ 
+    tf.keras.layers.GRU(64, return_sequences=True),
+    tf.keras.layers.GRU(64),
+    tf.keras.layers.Dense(32),
+    tf.keras.layers.Dense(1, activation='relu')])
+model.compile(optimizer='adam', loss=mse)
 
 def start(update : Update, context : CallbackContext):
     help_str = "/start -> Show option menu.\n"
@@ -211,8 +218,7 @@ def predictchart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     interval = str(context.args[1])
-    model = MLPRegressor(
-        hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='identity', shuffle=True)
+
     scaler = MinMaxScaler()
     url = base_url + "/api/v3/klines?symbol=%s&interval=%s&limit=1000" % (trade_pair, interval)
     response = requests.get(url=url)
@@ -234,7 +240,7 @@ def predictchart(update : Update, context : CallbackContext):
     x_train = scaler.fit_transform(x_train)
     y_train = scaler.fit_transform(y_train.reshape((-1, 1))).squeeze()
     x_test = scaler.fit_transform(x_data[test_index:])
-    model = model.fit(x_train, y_train)
+    model.fit(x_train, y_train)
     y_pred = model.predict(x_test)
 
     data = df[['open', 'high', 'low', 'close']].to_numpy(dtype=numpy.float32)
@@ -273,8 +279,6 @@ def futurechart(update : Update, context : CallbackContext):
 
     trade_pair = str(context.args[0])
     n_day = int(context.args[1])
-    model = MLPRegressor(
-        hidden_layer_sizes=(64, 128, 64), max_iter=500, activation='identity', shuffle=True)
     scaler = MinMaxScaler()
     url = base_url + "/api/v3/klines?symbol=%s&interval=1d&limit=1000" % (trade_pair)
     response = requests.get(url=url)
@@ -296,19 +300,19 @@ def futurechart(update : Update, context : CallbackContext):
     x_train = scaler.fit_transform(x_train)
     y_train = scaler.fit_transform(y_train.reshape((-1, 1))).squeeze()
     x_test = scaler.fit_transform(x_data[test_index:])
-    model = model.fit(x_train, y_train)
+    model.fit(x_train, y_train)
     y_pred = model.predict(x_test)
 
     y_future_pred = []
-    x_future = y_pred[-n_day:].reshape((-1, 1))
+    x_future = y_pred[-n_day:].reshape((-1, 1, 1))
     y_hat = model.predict(x_future[0:1])
-    y_hat = y_hat.reshape((-1, 1))
+    y_hat = y_hat.reshape((-1, 1, 1))
     tmp_future = y_hat
     y_future_pred.extend(y_hat)
     for i in range(1, n_day):
         future = numpy.concatenate((x_future[i:i+1], tmp_future), axis=0)
-        y_hat = model.predict(future.reshape((-1, 1)))
-        y_hat = y_hat.reshape((-1, 1))
+        y_hat = model.predict(future.reshape((-1, 1, 1)))
+        y_hat = y_hat.reshape((-1, 1, 1))
         tmp_future = y_hat
         y_future_pred.extend(y_hat)
     y_future_pred = numpy.array(y_future_pred[-n_day:]).squeeze()

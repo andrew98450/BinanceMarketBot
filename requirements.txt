@@ -4,5 +4,6 @@ numpy
 requests
 pandas
 matplotlib
+tensorflow
 scikit-learn
 prettytable
