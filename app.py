@@ -297,7 +297,7 @@ def futurechart(update : Update, context : CallbackContext):
     
     x_train, _, y_train, _ = train_test_split(x_data, y_data, test_size=0.3, shuffle=True)
     _, time_test = train_test_split(time_data, test_size=0.3, shuffle=False)
-    x_train = scaler.fit_transform(x_train)
+    x_train = scaler.fit_transform(x_train).reshape((-1, 1, 1))
     y_train = scaler.fit_transform(y_train.reshape((-1, 1))).squeeze()
     x_test = scaler.fit_transform(x_data[test_index:])
     model.fit(x_train, y_train)
