@@ -5,4 +5,5 @@ requests
 pandas
 matplotlib
 scikit-learn
+tensorflow-cpu
 prettytable
